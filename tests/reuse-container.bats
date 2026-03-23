@@ -18,9 +18,9 @@ setup() {
 
 @test "Reuse container: creates new container when none exists" {
   stub docker \
-    "container inspect --format '{{.State.Running}}' buildkite-reuse-image-tag-3 : exit 1" \
-    "run -d --name buildkite-reuse-image-tag-3 -t -i --init --volume $PWD:/workdir --workdir /workdir --label com.buildkite.job-id=1-2-3-4 --entrypoint '' image:tag sleep infinity : echo abc123" \
-    "exec -t -i --workdir /workdir buildkite-reuse-image-tag-3 /bin/sh -e -c 'pwd' : echo ran command in docker"
+    "container inspect --format '{{.State.Running}}' image-tag-3 : exit 1" \
+    "run -d --name image-tag-3 -t -i --init --volume $PWD:/workdir --workdir /workdir --label com.buildkite.job-id=1-2-3-4 --entrypoint '' image:tag sleep infinity : echo abc123" \
+    "exec -t -i --workdir /workdir image-tag-3 /bin/sh -e -c 'pwd' : echo ran command in docker"
 
   run "$PWD"/hooks/command
 
@@ -33,10 +33,10 @@ setup() {
 
 @test "Reuse container: exec into existing container with matching image digest" {
   stub docker \
-    "container inspect --format '{{.State.Running}}' buildkite-reuse-image-tag-3 : echo true" \
-    "inspect --format '{{.Image}}' buildkite-reuse-image-tag-3 : echo sha256:abc123" \
+    "container inspect --format '{{.State.Running}}' image-tag-3 : echo true" \
+    "inspect --format '{{.Image}}' image-tag-3 : echo sha256:abc123" \
     "image inspect --format '{{.Id}}' image:tag : echo sha256:abc123" \
-    "exec -t -i --workdir /workdir buildkite-reuse-image-tag-3 /bin/sh -e -c 'pwd' : echo ran command in docker"
+    "exec -t -i --workdir /workdir image-tag-3 /bin/sh -e -c 'pwd' : echo ran command in docker"
 
   run "$PWD"/hooks/command
 
@@ -49,12 +49,12 @@ setup() {
 
 @test "Reuse container: replaces container on image digest mismatch" {
   stub docker \
-    "container inspect --format '{{.State.Running}}' buildkite-reuse-image-tag-3 : echo true" \
-    "inspect --format '{{.Image}}' buildkite-reuse-image-tag-3 : echo sha256:olddigest" \
+    "container inspect --format '{{.State.Running}}' image-tag-3 : echo true" \
+    "inspect --format '{{.Image}}' image-tag-3 : echo sha256:olddigest" \
     "image inspect --format '{{.Id}}' image:tag : echo sha256:newdigest" \
-    "rm -f buildkite-reuse-image-tag-3 : echo removed" \
-    "run -d --name buildkite-reuse-image-tag-3 -t -i --init --volume $PWD:/workdir --workdir /workdir --label com.buildkite.job-id=1-2-3-4 --entrypoint '' image:tag sleep infinity : echo abc123" \
-    "exec -t -i --workdir /workdir buildkite-reuse-image-tag-3 /bin/sh -e -c 'pwd' : echo ran command in docker"
+    "rm -f image-tag-3 : echo removed" \
+    "run -d --name image-tag-3 -t -i --init --volume $PWD:/workdir --workdir /workdir --label com.buildkite.job-id=1-2-3-4 --entrypoint '' image:tag sleep infinity : echo abc123" \
+    "exec -t -i --workdir /workdir image-tag-3 /bin/sh -e -c 'pwd' : echo ran command in docker"
 
   run "$PWD"/hooks/command
 
@@ -69,10 +69,10 @@ setup() {
 
 @test "Reuse container: removes and recreates stopped container" {
   stub docker \
-    "container inspect --format '{{.State.Running}}' buildkite-reuse-image-tag-3 : echo false" \
-    "rm -f buildkite-reuse-image-tag-3 : echo removed" \
-    "run -d --name buildkite-reuse-image-tag-3 -t -i --init --volume $PWD:/workdir --workdir /workdir --label com.buildkite.job-id=1-2-3-4 --entrypoint '' image:tag sleep infinity : echo abc123" \
-    "exec -t -i --workdir /workdir buildkite-reuse-image-tag-3 /bin/sh -e -c 'pwd' : echo ran command in docker"
+    "container inspect --format '{{.State.Running}}' image-tag-3 : echo false" \
+    "rm -f image-tag-3 : echo removed" \
+    "run -d --name image-tag-3 -t -i --init --volume $PWD:/workdir --workdir /workdir --label com.buildkite.job-id=1-2-3-4 --entrypoint '' image:tag sleep infinity : echo abc123" \
+    "exec -t -i --workdir /workdir image-tag-3 /bin/sh -e -c 'pwd' : echo ran command in docker"
 
   run "$PWD"/hooks/command
 
@@ -104,14 +104,15 @@ setup() {
   export BUILDKITE_AGENT_NAME="solo-agent"
 
   stub docker \
-    "container inspect --format '{{.State.Running}}' buildkite-reuse-image-tag : exit 1" \
-    "run -d --name buildkite-reuse-image-tag -t -i --init --volume $PWD:/workdir --workdir /workdir --label com.buildkite.job-id=1-2-3-4 --entrypoint '' image:tag sleep infinity : echo abc123" \
-    "exec -t -i --workdir /workdir buildkite-reuse-image-tag /bin/sh -e -c 'pwd' : echo ran command in docker"
+    "container inspect --format '{{.State.Running}}' image-tag : exit 1" \
+    "run -d --name image-tag -t -i --init --volume $PWD:/workdir --workdir /workdir --label com.buildkite.job-id=1-2-3-4 --entrypoint '' image:tag sleep infinity : echo abc123" \
+    "exec -t -i --workdir /workdir image-tag /bin/sh -e -c 'pwd' : echo ran command in docker"
 
   run "$PWD"/hooks/command
 
   assert_success
-  assert_output --partial "Creating persistent container buildkite-reuse-image-tag"
+  assert_output --partial "Warning: Could not extract numeric spawn index"
+  assert_output --partial "Creating persistent container image-tag"
   assert_output --partial "ran command in docker"
 
   unstub docker
@@ -122,10 +123,10 @@ setup() {
   export BUILDKITE_PLUGIN_DOCKER_ENVIRONMENT_1=OTHER=thing
 
   stub docker \
-    "container inspect --format '{{.State.Running}}' buildkite-reuse-image-tag-3 : echo true" \
-    "inspect --format '{{.Image}}' buildkite-reuse-image-tag-3 : echo sha256:abc123" \
+    "container inspect --format '{{.State.Running}}' image-tag-3 : echo true" \
+    "inspect --format '{{.Image}}' image-tag-3 : echo sha256:abc123" \
     "image inspect --format '{{.Id}}' image:tag : echo sha256:abc123" \
-    "exec -t -i --workdir /workdir --env MY_TAG=value --env OTHER=thing buildkite-reuse-image-tag-3 /bin/sh -e -c 'pwd' : echo ran command in docker"
+    "exec -t -i --workdir /workdir --env MY_TAG=value --env OTHER=thing image-tag-3 /bin/sh -e -c 'pwd' : echo ran command in docker"
 
   run "$PWD"/hooks/command
 
@@ -140,9 +141,9 @@ setup() {
   export BUILDKITE_PLUGIN_DOCKER_ENVIRONMENT_1=SECRET=supersecret
 
   stub docker \
-    "container inspect --format '{{.State.Running}}' buildkite-reuse-image-tag-3 : exit 1" \
-    "run -d --name buildkite-reuse-image-tag-3 -t -i --init --volume $PWD:/workdir --workdir /workdir --label com.buildkite.job-id=1-2-3-4 --entrypoint '' image:tag sleep infinity : echo abc123" \
-    "exec -t -i --workdir /workdir --env MY_TAG=value --env SECRET=supersecret buildkite-reuse-image-tag-3 /bin/sh -e -c 'pwd' : echo ran command in docker"
+    "container inspect --format '{{.State.Running}}' image-tag-3 : exit 1" \
+    "run -d --name image-tag-3 -t -i --init --volume $PWD:/workdir --workdir /workdir --label com.buildkite.job-id=1-2-3-4 --entrypoint '' image:tag sleep infinity : echo abc123" \
+    "exec -t -i --workdir /workdir --env MY_TAG=value --env SECRET=supersecret image-tag-3 /bin/sh -e -c 'pwd' : echo ran command in docker"
 
   run "$PWD"/hooks/command
 
@@ -163,9 +164,9 @@ setup() {
 
 @test "Reuse container: no --rm flag in docker run args" {
   stub docker \
-    "container inspect --format '{{.State.Running}}' buildkite-reuse-image-tag-3 : exit 1" \
-    "run -d --name buildkite-reuse-image-tag-3 -t -i --init --volume $PWD:/workdir --workdir /workdir --label com.buildkite.job-id=1-2-3-4 --entrypoint '' image:tag sleep infinity : echo abc123" \
-    "exec -t -i --workdir /workdir buildkite-reuse-image-tag-3 /bin/sh -e -c 'pwd' : echo ran command in docker"
+    "container inspect --format '{{.State.Running}}' image-tag-3 : exit 1" \
+    "run -d --name image-tag-3 -t -i --init --volume $PWD:/workdir --workdir /workdir --label com.buildkite.job-id=1-2-3-4 --entrypoint '' image:tag sleep infinity : echo abc123" \
+    "exec -t -i --workdir /workdir image-tag-3 /bin/sh -e -c 'pwd' : echo ran command in docker"
 
   run "$PWD"/hooks/command
 
@@ -177,10 +178,10 @@ setup() {
 
 @test "Reuse container: propagates exec exit code on failure" {
   stub docker \
-    "container inspect --format '{{.State.Running}}' buildkite-reuse-image-tag-3 : echo true" \
-    "inspect --format '{{.Image}}' buildkite-reuse-image-tag-3 : echo sha256:abc123" \
+    "container inspect --format '{{.State.Running}}' image-tag-3 : echo true" \
+    "inspect --format '{{.Image}}' image-tag-3 : echo sha256:abc123" \
     "image inspect --format '{{.Id}}' image:tag : echo sha256:abc123" \
-    "exec -t -i --workdir /workdir buildkite-reuse-image-tag-3 /bin/sh -e -c 'pwd' : exit 42"
+    "exec -t -i --workdir /workdir image-tag-3 /bin/sh -e -c 'pwd' : exit 42"
 
   run "$PWD"/hooks/command
 

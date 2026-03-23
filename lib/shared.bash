@@ -88,11 +88,15 @@ function get_reuse_container_name() {
   fi
 
   local sanitized="${image//[^a-zA-Z0-9_.-]/-}"
-  local name="buildkite-reuse-${sanitized}"
+  local name="${sanitized}"
 
   local spawn_suffix="${BUILDKITE_AGENT_NAME##*-}"
   if [[ "${spawn_suffix}" =~ ^[0-9]+$ ]]; then
     name="${name}-${spawn_suffix}"
+  else
+    echo "Warning: Could not extract numeric spawn index from BUILDKITE_AGENT_NAME '${BUILDKITE_AGENT_NAME}'." >&2
+    echo "  Multiple agents on the same host may share container name '${name}'." >&2
+    echo "  Set 'reuse-container-name' to specify an explicit container name." >&2
   fi
 
   echo "${name}"
